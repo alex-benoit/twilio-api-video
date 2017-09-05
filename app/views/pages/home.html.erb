@@ -1,2 +1,62 @@
-<h1>Pages#home</h1>
-<p>Find me in app/views/pages/home.html.erb</p>
+<div id="video"></div>
+
+<%= content_for :after_js do %>
+  <script>
+    // Twilio.Video.connect('<%#= @token.to_jwt %>', { audio: true, name: 'alex-room', video: { width: 640 } }).then(function(room) {
+    //   console.log('Successfully joined a Room: ', room);
+
+    //   Twilio.Video.createLocalTracks().then(function(localTracks) {
+    //     localTracks[1].attach(document.getElementById('video'))
+    //     console.log('Got default audio and video tracks:', localTracks);
+    //   });
+
+
+    //   room.on('participantConnected', function(participant) {
+    //     console.log("Participant '" +  participant.identity  + "' connected");
+
+    //     console.log(participant.tracks);
+
+    //     participant.tracks.forEach(track => {
+    //       document.getElementById('video').appendChild(track.attach());
+    //     });
+
+    //   })
+    // }, function(error) {
+    //     console.error('Unable to connect to Room: ' +  error.message);
+    // });
+
+    Twilio.Video.connect('<%= @token.to_jwt %>', { name: 'alex-room', video: { width: 640 }}).then(room => {
+      console.log('Connected to Room "%s"', room.name);
+
+      room.participants.forEach(participantConnected);
+      room.on('participantConnected', participantConnected);
+      room.on('participantDisconnected', participantDisconnected);
+      room.once('disconnected', error => room.participants.forEach(participantDisconnected));
+    });
+
+    function participantConnected(participant) {
+      console.log('Participant "%s" connected', participant.identity);
+
+      const tutorVideo = document.getElementById('video');
+
+      participant.on('trackAdded', track => trackAdded(tutorVideo, participant.identity, track));
+      participant.tracks.forEach(track => trackAdded(tutorVideo, participant.identity, track));
+      participant.on('trackRemoved', trackRemoved);
+    }
+
+    function participantDisconnected(participant) {
+      console.log('Participant "%s" disconnected', participant.identity);
+
+      participant.tracks.forEach(trackRemoved);
+      // document.getElementById(participant.sid).remove();
+    }
+
+    function trackAdded(div, identity, track) {
+      div.appendChild(track.attach());
+    }
+
+    function trackRemoved(track) {
+      track.detach().forEach(element => element.remove());
+    }
+  </script>
+<% end %>
